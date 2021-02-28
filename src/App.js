@@ -1,17 +1,76 @@
 import React, { Component } from "react";
 import "./App.css";
-import { Box, Flex } from "grid-styled";
+import { Flex } from "grid-styled";
+import { ThemeProvider } from "styled-components";
 import { generateBoard } from "./scripts/boardGenerator";
 import BoardRow from "./components/Board/BoardRow";
 import HorizontalNumbers from "./components/Board/HorizontalNumbers";
 import VerticalNumbers from "./components/Board/VeritcalNumbers";
 import { solveBoard } from "./scripts/boardSolver/boardSolver";
 
+const WIDTH = 10;
+const HEIGHT = 10;
+
+const theme = {
+  highlight: "rgba(0,255,255,.8)"
+};
+
 class App extends Component {
   constructor(props) {
     super(props);
-    this.state = { topRowHeight: 0, board: generateBoard(10, 10) };
+    const completeRows = Array(HEIGHT).fill(false);
+    const completeColumns = Array(WIDTH).fill(false);
+    const hints = generateBoard(WIDTH, HEIGHT);
+    let board = [];
+    for (let i = 0; i < HEIGHT; i++) {
+      board[i] = Array(WIDTH).fill("");
+    }
+    this.state = {
+      topRowHeight: 0,
+      hints,
+      board,
+      initialize: true,
+      forRow: true,
+      index: -1,
+      completeRows,
+      completeColumns,
+      bound: WIDTH / 2
+    };
   }
+
+  updateBoard = (newBoard, completeRows, completeColumns) => {
+    let { index, forRow, bound } = this.state;
+    do {
+      if (forRow) {
+        if (index === HEIGHT - 1) {
+          index = 0;
+          forRow = false;
+        } else {
+          index++;
+        }
+      } else {
+        if (index === WIDTH - 1) {
+          index = 0;
+          forRow = true;
+          bound += 0.5;
+        } else {
+          index++;
+        }
+      }
+    } while (
+      (forRow && completeRows[index]) ||
+      (!forRow && completeColumns[index])
+    );
+    this.setState({
+      board: newBoard,
+      forRow,
+      index,
+      initialize: false,
+      completeRows,
+      completeColumns,
+      bound
+    });
+  };
 
   componentDidMount() {
     const topRow = document.getElementById("verticalRow");
@@ -19,6 +78,29 @@ class App extends Component {
     this.setState({
       topRowHeight
     });
+    // const {
+    //   hints,
+    //   board,
+    //   initialize,
+    //   forRow,
+    //   index,
+    //   completeColumns,
+    //   completeRows
+    // } = this.state;
+    // setInterval(() => {
+    //   solveBoard(
+    //     WIDTH,
+    //     HEIGHT,
+    //     hints,
+    //     this.updateBoard,
+    //     board,
+    //     initialize,
+    //     forRow,
+    //     index,
+    //     completeRows,
+    //     completeColumns
+    //   );
+    // }, 500);
   }
 
   componentDidUpdate() {
@@ -30,27 +112,57 @@ class App extends Component {
   }
 
   render() {
-    const { board } = this.state;
-    board && console.log(solveBoard(10, 10, board));
+    const { hints, board, index, forRow } = this.state;
     return (
-      <div className="App">
-        <Box>{JSON.stringify(board[0])}</Box>
-        <Box>{JSON.stringify(board[1])}</Box>
-        <Flex flexDirection="row">
-          <HorizontalNumbers
-            topRowHeight={this.state ? this.state.topRowHeight : 0}
-            lst={board[0]}
-          />
-          <Flex flexDirection="column">
-            <VerticalNumbers lst={board[1]} />
+      <ThemeProvider theme={theme}>
+        <div className="App">
+          <Flex flexDirection="row">
+            <HorizontalNumbers
+              topRowHeight={this.state ? this.state.topRowHeight : 0}
+              lst={hints[0]}
+              highlightIndex={forRow ? index : -1}
+            />
             <Flex flexDirection="column">
-              {Array.from(Array(10).keys()).map(el => (
-                <BoardRow key={el} width={10} lst={board[0][el]} />
-              ))}
+              <VerticalNumbers
+                lst={hints[1]}
+                highlightIndex={forRow ? -1 : index}
+              />
+              <Flex flexDirection="column">
+                {board.map((row, ind) => (
+                  <BoardRow
+                    key={ind}
+                    width={WIDTH}
+                    lst={row}
+                    highlightRow={forRow && ind === index}
+                    highlightBox={!forRow ? index : -1}
+                  />
+                ))}
+              </Flex>
             </Flex>
           </Flex>
-        </Flex>
-      </div>
+          <button
+            onClick={() =>
+              setInterval(() => {
+                solveBoard(
+                  WIDTH,
+                  HEIGHT,
+                  this.state.hints,
+                  this.updateBoard,
+                  this.state.board,
+                  this.state.initialize,
+                  this.state.forRow,
+                  this.state.index,
+                  this.state.completeRows,
+                  this.state.completeColumns,
+                  this.state.bound
+                );
+              }, 500)
+            }
+          >
+            Solve
+          </button>
+        </div>
+      </ThemeProvider>
     );
   }
 }

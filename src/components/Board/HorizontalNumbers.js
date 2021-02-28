@@ -1,13 +1,17 @@
 import React from "react";
-import { Box, Flex } from "grid-styled";
+import { Flex } from "grid-styled";
 import { RowBox } from "../../styles";
 
-const HorizontalNumbers = ({ lst, topRowHeight }) => {
+const HorizontalNumbers = ({ lst, topRowHeight, highlightIndex }) => {
   return (
     <Flex flexDirection="column">
       <RowBox borderLeft="1px solid black" height={topRowHeight} />
       {lst.map((arr, ind) => (
-        <RowBox borderLeft="1px solid black" key={ind}>
+        <RowBox
+          borderLeft="1px solid black"
+          highlight={highlightIndex === ind}
+          key={ind}
+        >
           {arr.map(el => `${el} `)}
         </RowBox>
       ))}

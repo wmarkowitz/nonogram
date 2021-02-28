@@ -7,7 +7,6 @@ export const generateBoard = (width, height) => {
       matrix[i].push(zeroOrOne === 1);
     }
   }
-  //   console.log(matrix);
   return generateNumbers(matrix, width, height);
 };
 

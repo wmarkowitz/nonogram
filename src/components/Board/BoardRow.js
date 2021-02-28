@@ -1,15 +1,16 @@
 import React from "react";
-import { Box, Flex } from "grid-styled";
+import { Flex } from "grid-styled";
 import { RowBox } from "../../styles";
 
-const BoardRow = ({ lst, width }) => (
+const BoardRow = ({ lst, highlightBox, highlightRow }) => (
   <Flex>
-    {Array(width)}
-    {Array(width)
-      .fill("")
-      .map((_, ind) => {
-        return <RowBox key={ind} />;
-      })}
+    {lst.map((el, ind) => {
+      return (
+        <RowBox highlight={highlightRow || ind === highlightBox} key={ind}>
+          {el}
+        </RowBox>
+      );
+    })}
   </Flex>
 );
 

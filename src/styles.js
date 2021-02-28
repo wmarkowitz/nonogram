@@ -14,4 +14,6 @@ export const RowBox = styled(Box)`
   min-width: 25px;
   padding: 0 3px;
   ${borderLeft};
+  background-color: ${({ theme, highlight }) =>
+    highlight ? theme.highlight : "white"};
 `;

@@ -1,29 +1,30 @@
 import { glue, reverseGlue } from "./glue";
+import { singleSimpleSpaces } from "./simpleSpaces";
+import { fillX, fillO, fillRow } from "./fill";
+import { verifyComplete, countXs } from "./verification";
+import { arrSum } from "./utility";
 
 export const solveBoard = (
   width,
   height,
-  [horizontalNumbers, verticalNumbers]
+  [horizontalNumbers, verticalNumbers],
+  updateBoard,
+  currentBoard,
+  initialize,
+  forRow,
+  index,
+  completeRows,
+  completeColumns,
+  bound
 ) => {
-  const completeRows = Array(height).fill(false);
-  const completeColumns = Array(width).fill(false);
-
-  //Fills empty spaces with X's, to be used when completing a row or column
-  let fillX = function(currentBoard, isRow, ind) {
-    const length = isRow ? width : height;
-    for (let i = 0; i < length; i++) {
-      if (isRow) {
-        if (currentBoard[ind][i] === "_") {
-          currentBoard[ind][i] = "X";
-        }
-      } else {
-        if (currentBoard[i][ind] === "_") {
-          currentBoard[i][ind] = "X";
-        }
-      }
-    }
-  };
-
+  const rowStorage = [];
+  const columnStorage = [];
+  for (let i = 0; i < height; i++) {
+    rowStorage[i] = {};
+  }
+  for (let i = 0; i < width; i++) {
+    columnStorage[i] = {};
+  }
   //Initializes a row/column using the mathematical approach (see https://en.wikipedia.org/wiki/Nonogram)
   let initialCheck = function(currentBoard, isRow, ind, lst) {
     const length = isRow ? width : height;
@@ -41,7 +42,7 @@ export const solveBoard = (
       }
     }
     if (bound === 0) {
-      fillX(currentBoard, isRow, ind);
+      fillX(currentBoard, isRow, ind, isRow ? width : height);
       if (isRow) {
         completeRows[ind] = true;
       } else {
@@ -49,36 +50,89 @@ export const solveBoard = (
       }
     }
   };
-  const arrSum = arr => arr.reduce((a, b) => a + b, 0);
-  const board = [];
-  for (let i = 0; i < height; i++) {
-    board.push(Array(width).fill("_"));
+
+  if (initialize) {
+    for (let i = 0; i < height; i++) {
+      initialCheck(currentBoard, true, i, horizontalNumbers[i]);
+    }
+    for (let i = 0; i < width; i++) {
+      initialCheck(currentBoard, false, i, verticalNumbers[i]);
+    }
+    updateBoard(currentBoard, completeRows, completeColumns);
+    return;
   }
 
-  for (let i = 0; i < height; i++) {
-    initialCheck(board, true, i, horizontalNumbers[i]);
-  }
-  for (let i = 0; i < width; i++) {
-    initialCheck(board, false, i, verticalNumbers[i]);
-  }
-
-  // console.log(board);
+  // console.log(currentBoard);
 
   // ASSORTED TECHNIQUES FOR SOLVING
   // WE WILL ALSO KEEP TRACK OF IF A BOARD IS IMPOSSIBLE FOR RECURSION PURPOSES
-
-  for (let i = 0; i < height; i++) {
+  const i = index;
+  if (forRow) {
     if (!completeRows[i]) {
-      glue(true, i, board, horizontalNumbers[i], width);
-      reverseGlue(true, i, board, horizontalNumbers[i], width);
+      glue(true, i, currentBoard, horizontalNumbers[i], width);
+      reverseGlue(true, i, currentBoard, horizontalNumbers[i], width);
+      if (horizontalNumbers[i].length === 1) {
+        singleSimpleSpaces(true, i, currentBoard, horizontalNumbers[i], width);
+      }
+      if (currentBoard[i].filter(el => el === "").length <= bound) {
+        rowStorage[i] = fillRow(
+          currentBoard,
+          true,
+          i,
+          horizontalNumbers[i],
+          width,
+          rowStorage[i]
+        );
+      }
+      if (verifyComplete(currentBoard, true, i, horizontalNumbers[i], width)) {
+        fillX(currentBoard, true, i, width);
+        completeRows[i] = true;
+      }
+      if (countXs(currentBoard, true, i, horizontalNumbers[i], width)) {
+        fillO(currentBoard, true, i, width);
+        if (
+          verifyComplete(currentBoard, true, i, horizontalNumbers[i], width)
+        ) {
+          completeRows[i] = true;
+        } else {
+          return -1;
+        }
+      }
     }
+    updateBoard(currentBoard, completeRows, completeColumns);
+    return;
   }
-  for (let i = 0; i < width; i++) {
-    if (!completeColumns[i]) {
-      glue(false, i, board, verticalNumbers[i], height);
-      reverseGlue(false, i, board, verticalNumbers[i], height);
+  if (!completeColumns[i]) {
+    // glue(false, i, currentBoard, verticalNumbers[i], height);
+    reverseGlue(false, i, currentBoard, verticalNumbers[i], height);
+    if (verticalNumbers[i].length === 1) {
+      singleSimpleSpaces(false, i, currentBoard, verticalNumbers[i], height);
+    }
+    if (
+      currentBoard.map(row => row[i]).filter(el => el === "").length <= bound
+    ) {
+      columnStorage[i] = fillRow(
+        currentBoard,
+        false,
+        i,
+        verticalNumbers[i],
+        height,
+        columnStorage[i]
+      );
+    }
+    if (verifyComplete(currentBoard, false, i, verticalNumbers[i], height)) {
+      fillX(currentBoard, false, i, height);
+      completeColumns[i] = true;
+    }
+    if (countXs(currentBoard, false, i, verticalNumbers[i], height)) {
+      fillO(currentBoard, false, i, height);
+      if (verifyComplete(currentBoard, false, i, verticalNumbers[i], height)) {
+        completeColumns[i] = true;
+      } else {
+        return -1;
+      }
     }
   }
 
-  return board;
+  updateBoard(currentBoard, completeRows, completeColumns);
 };
